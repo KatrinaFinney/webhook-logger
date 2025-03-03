@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os/exec"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors" // CORS package
@@ -14,6 +15,7 @@ import (
 
 // Initialize database connection as a global variable
 var db *sql.DB
+var ngrokURL string // to store the ngrok URL
 
 // Initialization function
 func init() {
@@ -35,6 +37,16 @@ func init() {
 	if err != nil {
 		log.Fatal("Error creating table: ", err)
 	}
+
+	// Start ngrok programmatically
+	cmd := exec.Command("ngrok", "http", "8080")
+	err = cmd.Start()
+	if err != nil {
+		log.Fatal("Error starting ngrok: ", err)
+	}
+
+	// Allow some time for ngrok to initialize and fetch the public URL (use ngrok API or output for this)
+	ngrokURL = "http://localhost:4040" // Replace this with actual dynamic retrieval if needed
 }
 
 // Main entry point
@@ -51,9 +63,12 @@ func main() {
 	// Endpoint to fetch logs from the database
 	r.HandleFunc("/logs", GetLogsHandler).Methods("GET")
 
+	// Endpoint to fetch the current ngrok URL
+	r.HandleFunc("/ngrok", GetNgrokURLHandler).Methods("GET")
+
 	// Set up CORS
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"}, // Allow all origins, modify as needed
+		AllowedOrigins:   []string{"*"}, // Allow all origins for simplicity, modify as needed
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
@@ -145,4 +160,11 @@ func GetLogsHandler(w http.ResponseWriter, r *http.Request) {
 	// Send the logs as JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(logs)
+}
+
+// Handler function to get the current ngrok URL
+func GetNgrokURLHandler(w http.ResponseWriter, r *http.Request) {
+	// Send the ngrok URL back to the frontend
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"ngrok_url": ngrokURL})
 }
