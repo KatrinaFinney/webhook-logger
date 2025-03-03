@@ -9,6 +9,7 @@ import (
 	"net/http"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/handlers"
 )
 
 // Initialize database connection as a global variable
@@ -50,9 +51,16 @@ func main() {
 	// Endpoint to fetch logs from the database
 	r.HandleFunc("/logs", GetLogsHandler).Methods("GET")
 
+	// Enable CORS for all routes
+	corsHandler := handlers.CORS(
+		handlers.AllowedOrigins([]string{"http://localhost:3000"}),  // Allow requests from React app
+		handlers.AllowedMethods([]string{"GET", "POST", "OPTIONS"}), // Allow GET, POST, OPTIONS methods
+		handlers.AllowedHeaders([]string{"Content-Type"}),            // Allow Content-Type header
+	)(r)
+
 	// Start the server and log any errors that occur
 	fmt.Println("Server is running on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(":8080", corsHandler))
 }
 
 // Webhook handler function
@@ -132,7 +140,6 @@ func GetLogsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		logs = append(logs, logData)
 	}
-	//test//
 
 	// Send the logs as JSON
 	w.Header().Set("Content-Type", "application/json")
