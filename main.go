@@ -9,7 +9,7 @@ import (
 	"net/http"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/handlers"
+	"github.com/rs/cors" // CORS package
 )
 
 // Initialize database connection as a global variable
@@ -51,16 +51,17 @@ func main() {
 	// Endpoint to fetch logs from the database
 	r.HandleFunc("/logs", GetLogsHandler).Methods("GET")
 
-	// Allow all origins for testing purposes
-	corsHandler := handlers.CORS(
-		handlers.AllowedOrigins([]string{"*"}), // Allow all origins (for testing)
-		handlers.AllowedMethods([]string{"GET", "POST", "OPTIONS"}),
-		handlers.AllowedHeaders([]string{"Content-Type", "Origin", "Accept", "Authorization"}),
-	)(r)
+	// Set up CORS
+	corsHandler := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"}, // Allow all origins, modify as needed
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
+	})
 
 	// Start the server and log any errors that occur
 	fmt.Println("Server is running on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", corsHandler))
+	log.Fatal(http.ListenAndServe(":8080", corsHandler.Handler(r)))
 }
 
 // Webhook handler function
