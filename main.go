@@ -9,6 +9,7 @@ import (
 	"net/http"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors" // Import CORS package
 )
 
 // Initialize database connection as a global variable
@@ -50,9 +51,18 @@ func main() {
 	// Endpoint to fetch logs from the database
 	r.HandleFunc("/logs", GetLogsHandler).Methods("GET")
 
-	// Start the server and log any errors that occur
+	// Wrap the router with CORS middleware
+	corsHandler := cors.New(cors.Options{
+		AllowedOrigins: []string{"http://localhost:3000"}, // Allow requests from React frontend
+		AllowedMethods: []string{"GET", "POST"},           // Allow GET and POST methods
+		AllowedHeaders: []string{"Content-Type"},          // Allow content type headers
+	})
+
+	// Start the server with CORS middleware
+	http.Handle("/", corsHandler.Handler(r))
+
 	fmt.Println("Server is running on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 // Webhook handler function
@@ -68,7 +78,6 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	// Read the request body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		fmt.Println("Error reading body:", err)
 		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
 		return
 	}
@@ -80,7 +89,6 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	var jsonBody map[string]interface{}
 	err = json.Unmarshal(body, &jsonBody)
 	if err != nil {
-		fmt.Println("Error unmarshalling JSON:", err)
 		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
 		return
 	}
@@ -88,15 +96,14 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	// Log the parsed JSON body
 	fmt.Printf("Parsed JSON Body: %#v\n", jsonBody)
 
-	// Hardcoded values for simplicity (adjust this to your needs)
-	event := "payment_received"
-	amount := 100.00
-	source := "GitHub"
+	// Extract key information from the JSON body
+	event, _ := jsonBody["event"].(string)
+	source, _ := jsonBody["source"].(string)
+	amount, _ := jsonBody["amount"].(float64)
 
-	// Insert the log into the database
+	// Insert the log into the database in a structured format
 	_, err = db.Exec("INSERT INTO logs (source, event, amount, body) VALUES (?, ?, ?, ?)", source, event, amount, string(body))
 	if err != nil {
-		fmt.Println("Error inserting log into database:", err)
 		http.Error(w, "Failed to store log", http.StatusInternalServerError)
 		return
 	}
@@ -120,7 +127,7 @@ func GetLogsHandler(w http.ResponseWriter, r *http.Request) {
 		var source, event, body string
 		var amount float64
 		if err := rows.Scan(&id, &source, &event, &amount, &body); err != nil {
-			http.Error(w, "We've failed to read log", http.StatusInternalServerError)
+			http.Error(w, "Failed to read log", http.StatusInternalServerError)
 			return
 		}
 		logData := map[string]interface{}{
