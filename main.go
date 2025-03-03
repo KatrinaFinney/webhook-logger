@@ -132,6 +132,7 @@ func GetLogsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		logs = append(logs, logData)
 	}
+	//test//
 
 	// Send the logs as JSON
 	w.Header().Set("Content-Type", "application/json")
