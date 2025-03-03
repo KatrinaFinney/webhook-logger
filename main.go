@@ -120,7 +120,7 @@ func GetLogsHandler(w http.ResponseWriter, r *http.Request) {
 		var source, event, body string
 		var amount float64
 		if err := rows.Scan(&id, &source, &event, &amount, &body); err != nil {
-			http.Error(w, "Failed to read log", http.StatusInternalServerError)
+			http.Error(w, "We've failed to read log", http.StatusInternalServerError)
 			return
 		}
 		logData := map[string]interface{}{
