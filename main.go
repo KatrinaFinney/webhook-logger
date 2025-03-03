@@ -51,11 +51,11 @@ func main() {
 	// Endpoint to fetch logs from the database
 	r.HandleFunc("/logs", GetLogsHandler).Methods("GET")
 
-	// Enable CORS for all routes
+	// Allow all origins for testing purposes
 	corsHandler := handlers.CORS(
-		handlers.AllowedOrigins([]string{"http://localhost:3000"}),  // Allow requests from React app
-		handlers.AllowedMethods([]string{"GET", "POST", "OPTIONS"}), // Allow GET, POST, OPTIONS methods
-		handlers.AllowedHeaders([]string{"Content-Type"}),            // Allow Content-Type header
+		handlers.AllowedOrigins([]string{"*"}), // Allow all origins (for testing)
+		handlers.AllowedMethods([]string{"GET", "POST", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type"}),
 	)(r)
 
 	// Start the server and log any errors that occur
