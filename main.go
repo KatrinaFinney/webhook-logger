@@ -9,7 +9,6 @@ import (
 	"net/http"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/gorilla/mux"
-	"github.com/rs/cors" // Import CORS package
 )
 
 // Initialize database connection as a global variable
@@ -51,18 +50,9 @@ func main() {
 	// Endpoint to fetch logs from the database
 	r.HandleFunc("/logs", GetLogsHandler).Methods("GET")
 
-	// Wrap the router with CORS middleware
-	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:3000"}, // Allow requests from React frontend
-		AllowedMethods: []string{"GET", "POST"},           // Allow GET and POST methods
-		AllowedHeaders: []string{"Content-Type"},          // Allow content type headers
-	})
-
-	// Start the server with CORS middleware
-	http.Handle("/", corsHandler.Handler(r))
-
+	// Start the server and log any errors that occur
 	fmt.Println("Server is running on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":8080", r))
 }
 
 // Webhook handler function
@@ -78,6 +68,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	// Read the request body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
+		fmt.Println("Error reading body:", err)
 		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
 		return
 	}
@@ -89,6 +80,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	var jsonBody map[string]interface{}
 	err = json.Unmarshal(body, &jsonBody)
 	if err != nil {
+		fmt.Println("Error unmarshalling JSON:", err)
 		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
 		return
 	}
@@ -96,14 +88,15 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	// Log the parsed JSON body
 	fmt.Printf("Parsed JSON Body: %#v\n", jsonBody)
 
-	// Extract key information from the JSON body
-	event, _ := jsonBody["event"].(string)
-	source, _ := jsonBody["source"].(string)
-	amount, _ := jsonBody["amount"].(float64)
+	// Hardcoded values for simplicity (adjust this to your needs)
+	event := "payment_received"
+	amount := 100.00
+	source := "GitHub"
 
-	// Insert the log into the database in a structured format
+	// Insert the log into the database
 	_, err = db.Exec("INSERT INTO logs (source, event, amount, body) VALUES (?, ?, ?, ?)", source, event, amount, string(body))
 	if err != nil {
+		fmt.Printf("Error inserting log into database: %v\n", err)  // Log the error message
 		http.Error(w, "Failed to store log", http.StatusInternalServerError)
 		return
 	}
