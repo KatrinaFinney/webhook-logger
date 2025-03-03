@@ -55,7 +55,7 @@ func main() {
 	corsHandler := handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}), // Allow all origins (for testing)
 		handlers.AllowedMethods([]string{"GET", "POST", "OPTIONS"}),
-		handlers.AllowedHeaders([]string{"Content-Type"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Origin", "Accept", "Authorization"}),
 	)(r)
 
 	// Start the server and log any errors that occur
